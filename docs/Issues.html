@@ -50,13 +50,33 @@
       }
     </style>
     <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
-    <script src="https://fastly.jsdelivr.net/gh/jeremyfa/yaml.js@develop/dist/yaml.min.js"></script>
-
+    <script src="https://cdn.polyfill.io/v1/polyfill.min.js"></script>
+    <!-- <script src="https://fastly.jsdelivr.net/npm/marked/marked.min.js"></script> -->
     <script type="application/javascript">
-      var platforms = {}; //支持的机型列表
-      var versions = {}; //支持的系统列表
-      var releases = {};
       var extbase = "";
+      var repo = "wjz304/Redpill_CustomBuild";
+      var dev = "0";
+      var cdn = "";
+
+      repo = getRepo(repo);
+      dev = getUrlParam("dev");
+      cdn = `https://raw.githubusercontent.com/${repo}/main/`;
+      cdn = `https://fastly.jsdelivr.net/gh/${repo}@main/`;
+      //cdn = `https://gcore.jsdelivr.net/gh/${repo}@main/`;
+      //cdn = `https://cdn.staticaly.com/gh/${repo}/main/`;
+
+      function getRepo(repo) {
+        var url = document.location.toString();
+        var arr = url.split("?")[0].split("/");
+        if (arr.length > 1) {
+          for (var i = 0; i < arr.length; i++) {
+            if ((arr[i].indexOf(".github.io") >= 0) && (i+1 < arr.length) && (arr[i+1].length > 0)) {
+              return arr[i].replace(".github.io","") + "/" + arr[i+1];
+            }
+          }
+        }
+        return repo;
+      }
 
       function getUrlParam(paraName) {
         var url = document.location.toString();
@@ -70,30 +90,10 @@
               return arr[1];
             }
           }
-          return "";
-        } else {
-          return "";
         }
+        return "";
       }
 
-      function initPlatforms(list) {
-        list = list.sort();
-        for (var i in list) {
-          var key = list[i]
-            .replace("DS", "ds")
-            .replace("DVA", "dva")
-            .replace("+", "p");
-          platforms[key] = list[i];
-        }
-      }
-      function initVersions(list) {
-        list = list.sort();
-        for (var i in list) {
-          j = list[i].split("-");
-          // tmp.push(j[1]);
-          versions[j[1]] = list[i];
-        }
-      }
       function httpGetAsync(theUrl, callback) {
         let xmlHttpReq = new XMLHttpRequest();
         xmlHttpReq.onreadystatechange = function () {
@@ -103,129 +103,227 @@
         xmlHttpReq.open("GET", theUrl, true); // true for asynchronous
         xmlHttpReq.send(null);
       }
-      var dev = getUrlParam("dev");
+
       window.onload = function () {
+        setLogo(dev);
+        setTitle();
+        //setTips();
+        $("#titleLabel").on("click", changemode);
+        httpGetAsync(
+          cdn + "parameter.json" + "?+Math.random()",
+          function (result) {
+            result = JSON.parse(result);
+            $("#inputs").find("div").remove(); //html('');
+            var html = "";
+            for (var key in result) {
+              //console.log(key, result[key]);
+              html += createInput(result[key]);
+            }
+            $("#inputs").prepend(html);
+
+            $("#platform").on("change", changePlatform);
+            changePlatform();
+          }
+        );
+      };
+
+      function setLogo(dev) {
         if (dev == "1") {
           $("#titleLabel").text("Develop");
           $($("#logoP"))[0].style.display = "none";
           $($("#logoD"))[0].style.display = "block";
+        } else {
+          $("#titleLabel").text("Master");
+          $($("#logoP"))[0].style.display = "block";
+          $($("#logoD"))[0].style.display = "none";
         }
-        httpGetAsync(
-          "https://fastly.jsdelivr.net/gh/wjz304/Redpill_CustomBuild@main/.github/workflows/custom.yml",
-          function (result) {
-            yaml = YAML.parse(result);
-            if (yaml.hasOwnProperty("on")) {
-              inputs = yaml.on.workflow_dispatch.inputs;
-              $("#inputs").find("div").remove(); //html('');
-              var html = "";
-              html += createInput(
-                "title",
-                "title",
-                "请输入一个自定义的名称（请具有一定的标识性，且不要包含'(单引号),\"(双引号) 等转义字符）",
-                false,
-                new Date().toISOString().substr(0, 10),
-                true
-              );
-              html += createInput(
-                "config",
-                "config",
-                "直接更新到 user_config.json, 无特殊需求请勿填写. 请详细阅读说明.",
-                false,
-                "",
-                false
-              );
-              for (var field in inputs) {
-                var ff = inputs[field];
-                if (field == "platform") {
-                  initPlatforms(ff.options);
-                } else if (field == "version") {
-                  initVersions(ff.options);
-                }
-                var dft = "";
-                var need = false;
-                if (ff.hasOwnProperty("required")) need = ff.required;
-                if (ff.hasOwnProperty("default")) dft = ff.default;
-                if (ff.type == "choice") {
-                  html += createSelect(
-                    field,
-                    field,
-                    ff.description,
-                    ff.options,
-                    dft,
-                    need
-                  );
-                } else if (ff.type == "string") {
-                  html += createInput(
-                    field,
-                    field,
-                    ff.description,
-                    ff.options,
-                    dft,
-                    need
-                  );
-                } else {
-                  console.log(field, inputs[field]);
-                }
-              }
-              $("#inputs").prepend(html);
-              createOtherRule();
+      }
+
+      function setTitle() {
+        document.title = repo;
+        $("#titleA")[0].href = `https://github.com/${repo}`;
+        $("#titleA")[0].innerText = repo.substring(repo.indexOf("/")+1);
+      }
+
+      function setTips() {
+        httpGetAsync(cdn + "tips.md" + "?+Math.random()", function (result) {
+          // var html = marked.parse(result).replace('<pre>', "<pre>\n");
+          // 引入的文件就是一段md格式的代码，这里就直接解析一下算了
+          var html = result.replace(/\`+[^\n]*\n/g, "");
+          html = html.split("\n");
+          // html = html.splice(1, html.length-2);
+          var css = "";
+          for (var i in html) {
+            css = "";
+            if (html[i].substr(0, 1) == "-") {
+              css = "pl-md";
             } else {
-              console.log(yaml);
+              css = "pl-mi1";
+            }
+            if (css) {
+              html[i] = '<span class="' + css + '">' + html[i] + "</span>";
             }
           }
-        );
-      };
-      function createOtherRule() {
-        //这里是支持的机型和系统版本的对应关系
-        var extsurl =
-          "https://fastly.jsdelivr.net/gh/pocopico/rp-ext@main/redpill/rpext-index.json";
-        if (dev == "1")
-          extsurl =
-            "https://fastly.jsdelivr.net/gh/wjz304/rp-ext@main/redpill/rpext-index.json";
-        httpGetAsync(extsurl, function (result) {
-          result = JSON.parse(result);
-          if (result.hasOwnProperty("releases")) {
-            var xreleases = new Array();
-            var k = 0;
-            for (var i in result.releases) {
-              var tmp = i.split("_");
-              if (tmp.length == 2) {
-                xreleases[k] = i;
-                k++;
-              }
-            }
-            xreleases = xreleases.sort();
-            for (var i in xreleases) {
-              var tmp = xreleases[i].split("_");
-              if (tmp.length == 2) {
-                if (versions.hasOwnProperty(tmp[1])) {
-                  if (!releases.hasOwnProperty(tmp[0])) {
-                    releases[tmp[0]] = {};
-                  }
-                  releases[tmp[0]][tmp[1]] = versions[tmp[1]];
-                }
-              }
-            }
-            $("#platform").on("change", changePlatform);
-            changePlatform();
-          }
+          html = "<pre>" + html.join("\n") + "</pre>";
+          $(".highlight.highlight-source-diff").html(html);
         });
       }
+
+      function changemode() {
+        dev = dev == "1" ? "0" : "1";
+        setLogo(dev);
+        createExtBtn();
+      }
+
+      function createInput(data) {
+        var html = "";
+
+        var name = "";
+        var desc = "";
+        var type = "";
+        var dft = "";
+        var req = "";
+        var info = "";
+        if (data.hasOwnProperty("name")) name = data.name;
+        if (data.hasOwnProperty("description")) desc = data.description;
+        if (data.hasOwnProperty("type")) type = data.type;
+        if (data.hasOwnProperty("default")) dft = data.default;
+        if (data.hasOwnProperty("required")) req = data.required;
+        if (data.hasOwnProperty("detailedinfo")) info = data.detailedinfo;
+
+        if (type == "choice") {
+          var par = "";
+          if (req) par = "required";
+          html += `<div class="form-group mt-1 mb-2 ${par}"><div class="form-group-header"><label class="color-fg-default text-mono f6" for="${name}">${name}</label></div><div class="form-group-body">`;
+          html += `<select class="form-select form-control select-sm input-contrast" id="${name}" required="" name="inputs[${name}]" value="'${dft}'">`;
+          var opts = [];
+          if (data.hasOwnProperty("options")) opts = data.options;
+          for (var v in opts) {
+            var addpar = "";
+            if (opts[v] == dft) addpar = 'selected="selected"';
+            html += `<option ${addpar} value="${opts[v]}">${opts[v]}</option>`;
+          }
+          html += `</select>`;
+          html += `<a class="js-navigation-open Link--primary" title="${info}" data-pjax="#repo-content-pjax-container" data-turbo-frame="repo-content-turbo-frame" href="#">使用说明：${desc}</a>`;
+          html += `</div></div>`;
+        } else if (type == "string") {
+          var par = "";
+          if (req) par = "required";
+          html += `<div class="form-group mt-1 mb-2 ${par}"><div class="form-group-header"><label class="color-fg-default text-mono f6" for="${name}">${name}</label></div><div class="form-group-body">`;
+          html += `<input class="form-control input-contrast input-sm" type="text" id="${name}" name="inputs[${name}]" value="${dft}" />`;
+          html += `<a class="js-navigation-open Link--primary" title="${info}" data-pjax="#repo-content-pjax-container" data-turbo-frame="repo-content-turbo-frame" href="#">使用说明：${desc}</a>`;
+          html += `</div></div>`;
+        } else {
+        }
+        return html;
+      }
+
       function changePlatform() {
-        platform = $("#platform")
-          .val()
-          .replace("DS", "ds")
-          .replace("DVA", "dva")
-          .replace("+", "p");
-        options = releases[platform];
-        $("#version").empty();
-        $("#version").append($("<option></option>").val("").html("请选择"));
-        $.each(options, function (i, p) {
-          $("#version").append($("<option></option>").val(p).html(p));
+        httpGetAsync(cdn + "loads.json" + "?+Math.random()", function (result) {
+          result = JSON.parse(result);
+          var xreleases = result["pocopico_develop"][$("#platform").val()];
+          var isselect = false;
+          for (var i = 0; i < $("#version")[0].options.length; i++) {
+            if (xreleases.includes($("#version")[0].options[i].value)) {
+              $("#version")[0].options[i].style.display = "block";
+              if (!isselect) {
+                $("#version")[0].options[i].selected = true;
+                isselect = true;
+              }
+            } else {
+              $("#version")[0].options[i].style.display = "none";
+            }
+          }
+          $("#version").on("change", changeversion);
+          changeversion();
         });
-        $("#version").on("change", changeversion);
-        changeversion();
       }
+
+      function changeversion() {
+        httpGetAsync(cdn + "loads.json" + "?+Math.random()", function (result) {
+          result = JSON.parse(result);
+          var xreleases = result["jumkey_develop"][$("#platform").val()];
+          var isselect = false;
+
+          for (var i = 0; i < $("#exp")[0].options.length; i++) {
+            if ($("#exp")[0].options[i].value == "jumkey") {
+              if (
+                result["jumkey_develop"].hasOwnProperty($("#platform").val()) &&
+                result["jumkey_develop"][$("#platform").val()].includes(
+                  $("#version").val()
+                )
+              ) {
+                $("#exp")[0].options[i].style.display = "block";
+                $("#exp")[0].options[i].selected = true;
+              } else {
+                $("#exp")[0].options[i].style.display = "none";
+                $("#exp")[0].options[i].selected = false;
+              }
+            }
+          }
+          for (var i in $("#jun")[0].options) {
+            if ($("#jun")[0].options[i].value == "1") {
+              if (["7.0.1-42218"].includes($("#version").val())) {
+                $("#jun")[0].options[i].style.display = "block";
+                $("#jun")[0].options[i].selected = true;
+              } else {
+                $("#jun")[0].options[i].style.display = "none";
+                $("#jun")[0].options[i].selected = false;
+              }
+            }
+          }
+          createExtBtn();
+        });
+      }
+
+      function createExtBtn() {
+        platform = $("#platform").val().replace("+", "p").toLowerCase();
+        version = $("#version").val().split("-")[1];
+        var exts = {};
+        httpGetAsync(cdn + "exts.json" + "?+Math.random()", function (result) {
+          result = JSON.parse(result);
+          extskey = "pocopico";
+          if (dev == "1") extskey = "wjz304";
+          if (extskey in result && platform + "_" + version in result[extskey])
+            exts = result[extskey][platform + "_" + version];
+          var html = "";
+          let idx = 1;
+          if (Object.keys(exts).length > 0) {
+            html +=
+              '<span class="pl-mi1">点击驱动名添加/删除 (* 结尾的为无效驱动, # 结尾的为sha256错误驱动, */# 强制添加将编译失败.) </span><br />';
+            html +=
+              '<button type="button" class="btn btn-primary btn-sm mt-2" id="ext_btn_-virtio" onclick="return processext(\'-virtio\')" autofocus="" title="Adds VirtIO support for fast network/PCI/SCSI/network/console paravirtualization under QEmu (Proxmox, VirtualBox, virsh, and similar)">-virtio</button>&nbsp;';
+            html +=
+              '<button type="button" class="btn btn-primary btn-sm mt-2" id="ext_btn_-acpid2" onclick="return processext(\'-acpid2\')" autofocus="" title="ACPI Daemon v2 that handles power button events">-acpid2</button>&nbsp;';
+            html +=
+              '<button type="button" class="btn btn-primary btn-sm mt-2" id="ext_btn_-misc" onclick="return processext(\'-misc\')" autofocus="" title="Misc shell">-misc</button>&nbsp;';
+            html +=
+              '<button type="button" class="btn btn-primary btn-sm mt-2" id="ext_btn_-boot-wait" disabled="true" onclick="return processext(\'-boot-wait\')" autofocus="" title="Simple extension which stops the execution early waiting for the boot device to appear">-boot-wait</button>&nbsp;';
+            html +=
+              '<span class="pl-md">(注意: boot-wait, misc, acpid2, virtio 默认会进行判断添加, 此处以"-" 开头代表删除, 无特殊需求请勿删!!!.)</span><br />';
+          }
+          for (var ext in exts) {
+            var par = "";
+            if (ext.endsWith("*") || ext.endsWith("#"))
+              par = 'disabled="false"';
+            html += `<button type="button" class="btn btn-primary btn-sm mt-2" id="ext_btn_${ext
+              .replace(/\./g, "·")
+              .replace(
+                /[\*|\#]/g,
+                ""
+              )}" ${par} onclick="return processext('${ext}')" autofocus="" title="${
+              exts[ext]
+            }">${ext}</button>&nbsp;`;
+            if (idx++ % 15 == 0) html += "<br />";
+          }
+          $("#ext").prop("readonly", true);
+          if (extbase == "")
+            extbase = $($("#ext").parent().parent())[0].innerHTML;
+          if (extbase != "")
+            $($("#ext").parent().parent())[0].innerHTML = extbase + html;
+        });
+      }
+
       function processext(ext) {
         var obj = $("#ext_btn_" + ext.replace(/\./g, "·"));
         var exts = $("#ext").val().split(",");
@@ -248,143 +346,40 @@
         });
         $("#ext").val(exts.join(","));
       }
-      function createExtBtn() {
-        platform = $("#platform")
-          .val()
-          .replace("DS", "ds")
-          .replace("DVA", "dva")
-          .replace("+", "p");
-        version = $("#version").val().split("-").at(-1);
-        var exts = [];
-        var extsurl =
-          "https://fastly.jsdelivr.net/gh/wjz304/Redpill_CustomBuild@main/exts.json";
-        httpGetAsync(extsurl, function (result) {
-          result = JSON.parse(result);
-          extskey = "pocopico";
-          if (dev == "1") extskey = "wjz304";
-          if (extskey in result && platform + "_" + version in result[extskey])
-            exts = result[extskey][platform + "_" + version];
-          var html = "";
-          let idx = 1;
-          if (exts.length > 0) {
-            html +=
-              '<span class="pl-mi1">点击驱动名添加/删除 (* 结尾的为无效驱动, # 结尾的为sha256错误驱动, */# 强制添加均将编译失败.) </span><br />';
-            html +=
-              '<button type="button" class="btn btn-primary btn-sm mt-2" id="ext_btn_-virtio" onclick="return processext(\'-virtio\')" autofocus="" >-virtio</button>&nbsp;';
-            html +=
-              '<button type="button" class="btn btn-primary btn-sm mt-2" id="ext_btn_-acpid2" onclick="return processext(\'-acpid2\')" autofocus="" >-acpid2</button>&nbsp;';
-            html +=
-              '<button type="button" class="btn btn-primary btn-sm mt-2" id="ext_btn_-misc" onclick="return processext(\'-misc\')" autofocus="" >-misc</button>&nbsp;';
-            html +=
-              '<button type="button" class="btn btn-primary btn-sm mt-2" id="ext_btn_-boot-wait" disabled="true" onclick="return processext(\'-boot-wait\')" autofocus="" >-boot-wait</button>&nbsp;';
-            html +=
-              '<span class="pl-md">(注意: boot-wait, misc, acpid2, virtio 默认会进行判断添加, 此处以"-" 开头代表删除, 无特殊需求, 不要点!!!.)</span><br />';
-          }
-          for (var i in exts) {
-            var par = "";
-            if (exts[i].endsWith("*") || exts[i].endsWith("#"))
-              par = 'disabled="false"';
-
-            html += `<button type="button" class="btn btn-primary btn-sm mt-2" id="ext_btn_${exts[i].replace(/\./g, "·").replace(/[\*|\#]/g,"")}" ${par} onclick="return processext('${exts[i]}')" autofocus="" >${exts[i]}</button>&nbsp;`;
-            if (idx++ % 15 == 0) html += "<br />";
-          }
-          $("#ext").prop("readonly", true);
-          if (extbase == "")
-            extbase = $($("#ext").parent().parent())[0].innerHTML;
-          if (extbase != "")
-            $($("#ext").parent().parent())[0].innerHTML = extbase + html;
-        });
-      }
-      function changeversion() {
-        if ($("#version").val().split("-").at(-1) != "") {
-          // jumkey 当前不支持7.0.1 以上
-          if ($("#version").val().split("-").at(-1) > "42218") {
-            for (var i in  $("#exp")[0].options) {
-              if ($("#exp")[0].options[i].value == "pocopico") $("#exp")[0].options[i].selected = true;
-              if ($("#exp")[0].options[i].value == "jumkey") $("#exp")[0].options[i].style.display = "none";
-            }
-          } else {
-            for (var i in  $("#exp")[0].options) {
-              if ($("#exp")[0].options[i].value == "pocopico") $("#exp")[0].options[i].selected = true;
-              if ($("#exp")[0].options[i].value == "jumkey") $("#exp")[0].options[i].style.display = "block";
-            }
-          }
-          // jun 当前仅支持7.0.1
-          if ($("#version").val().split("-").at(-1) == "42218") {
-            for (var i in  $("#jun")[0].options) {
-              if ($("#jun")[0].options[i].value == "1") $("#jun")[0].options[i].selected = true;
-              if ($("#jun")[0].options[i].value == "1") $("#jun")[0].options[i].style.display = "block";
-            }
-          } else {
-            for (var i in  $("#jun")[0].options) {
-              if ($("#jun")[0].options[i].value == "0") $("#jun")[0].options[i].selected = true;
-              if ($("#jun")[0].options[i].value == "1") $("#jun")[0].options[i].style.display = "none";
-            }
-          }
-        }
-        createExtBtn();
-      }
-      function createInput(title, name, desc, opts, dft, req) {
-        var par = "";
-        if (req)
-          par = '"required"';
-        html = `<div class="form-group mt-1 mb-2 ${par} "><div class="form-group-header"><label class="color-fg-default text-mono f6" for="${name}">${title}</label></div><div class="form-group-body">`;
-        html += `<input class="form-control input-contrast input-sm" type="text" id="${name}" name="inputs[${name}]" value="${dft}" />使用说明：${desc}</div></div>`;
-        return html;
-      }
-
-      function createSelect(title, name, desc, opts, dft, req) {
-        var par = "";
-        if (req)
-          par = '"required"';
-        html = `<div class="form-group mt-1 mb-2 ${par}"><div class="form-group-header"><label class="color-fg-default text-mono f6" for="${name}">${title}</label></div><div class="form-group-body">`;
-        html += `<select class="form-select form-control select-sm input-contrast" id="${name}" required="" name="inputs[${name}]" value="'${dft}'">`;
-        for (var v in opts) {
-          var addpar = "";
-          if (opts[v] == dft) addpar = 'selected="selected"';
-          html += `<option ${addpar} value="${opts[v]}">${opts[v]}</option>`;
-        }
-        html += `</select>使用说明：${desc}</div></div>`;
-        return html;
-      }
 
       function createIssues() {
         var form = document.getElementById("inputs");
         let formData = new FormData(form);
+        var title = "Custom";
+        var body = {};
 
-        body = {};
-        if (formData.get("inputs[platform]"))
-          body["platform"] = formData.get("inputs[platform]");
-        if (formData.get("inputs[version]"))
-          body["version"] = formData.get("inputs[version]");
-        if (formData.get("inputs[map]"))
-          body["map"] = formData.get("inputs[map]");
-        if (formData.get("inputs[dtb]"))
-          body["dtb"] = formData.get("inputs[dtb]");
-        if (formData.get("inputs[sn]")) body["sn"] = formData.get("inputs[sn]");
-        if (formData.get("inputs[mac]"))
-          body["mac"] = formData.get("inputs[mac]");
-        if (formData.get("inputs[usb]"))
-          body["usb"] = formData.get("inputs[usb]");
-        if (formData.get("inputs[ext]"))
-          body["ext"] = formData.get("inputs[ext]");
-        if (formData.get("inputs[exp]"))
-          body["exp"] = formData.get("inputs[exp]");
-        if (formData.get("inputs[jun]"))
-          body["jun"] = formData.get("inputs[jun]");
-        if (dev == "1") body["dev"] = "1";
-        title = "Custom " + formData.get("inputs[title]");
-        var data =
-          "title=" +
-          title +
-          "&body=" +
-          JSON.stringify(body).replace(/\+/g, "%2b");
-        window.location.href =
-          "https://github.com/wjz304/Redpill_CustomBuild/issues/new?" + data;
+        httpGetAsync(
+          cdn + "parameter.json" + "?+Math.random()",
+          function (result) {
+            result = JSON.parse(result);
+            for (var key in result) {
+              var name = result[key]["name"];
+              if (name == "title") {
+                if (formData.get(`inputs[${name}]`)) {
+                  title += " " + formData.get(`inputs[${name}]`);
+                } else {
+                  title += " " + new Date().toISOString().substr(0, 10);
+                }
+                continue;
+              }
+              if (formData.get(`inputs[${name}]`)) {
+                body[name] = formData.get(`inputs[${name}]`);
+              }
+            }
+            if (dev == "1") body["dev"] = "1";
+            body = JSON.stringify(body).replace(/\+/g, "%2b");
+            window.location.href = `https://github.com/${repo}/issues/new?title=${title}&body=${body}`;
+          }
+        );
       }
     </script>
 
-    <title>wjz304/Redpill_CustomBuild</title>
+    <title></title>
   </head>
 
   <body
@@ -462,11 +457,11 @@
           </svg>
           <strong itemprop="name" class="mr-2 flex-self-stretch">
             <a
+              id="titleA"
               data-pjax="#repo-content-pjax-container"
               data-turbo-frame="repo-content-turbo-frame"
-              href="https://github.com/wjz304/Redpill_CustomBuild"
-              >Redpill_CustomBuild</a
-            >
+              href="#"
+            ></a>
           </strong>
           <span
             id="titleLabel"
@@ -494,33 +489,6 @@
         id="content"
         class="highlight highlight-source-diff notranslate position-relative overflow-auto"
       ></div>
-      <!-- <script src="https://fastly.jsdelivr.net/npm/marked/marked.min.js"></script> -->
-      <script>
-        httpGetAsync(
-          "https://fastly.jsdelivr.net/gh/wjz304/Redpill_CustomBuild@main/tips.md",
-          function (result) {
-            // var html = marked.parse(result).replace('<pre>', "<pre>\n");
-            // 引入的文件就是一段md格式的代码，这里就直接解析一下算了
-            var html = result.replace(/\`+[^\n]*\n/g, "");
-            html = html.split("\n");
-            // html = html.splice(1, html.length-2);
-            var css = "";
-            for (var i in html) {
-              css = "";
-              if (html[i].substr(0, 1) == "-") {
-                css = "pl-md";
-              } else {
-                css = "pl-mi1";
-              }
-              if (css) {
-                html[i] = '<span class="' + css + '">' + html[i] + "</span>";
-              }
-            }
-            html = "<pre>" + html.join("\n") + "</pre>";
-            $(".highlight.highlight-source-diff").html(html);
-          }
-        );
-      </script>
     </div>
     <footer
       class="footer width-full container-xl mt-3 text-center color-fg-muted"
@@ -553,7 +521,7 @@
           alt="@htmambo"
         />
       </a>
-      <span> © 2022 wjz304, htmambo, Inc. </span>
+      <span> © 2022 Ing, Htmambo, Inc. </span>
     </footer>
   </body>
 </html>

@@ -25,16 +25,28 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           sudo timedatectl set-timezone "Asia/Shanghai"
-          sudo apt install neofetch
-          neofetch
 
       - name: Checkout rp-ext s
         run: |
           sudo rm -rf rp-ext_pocopico
           git clone https://github.com/pocopico/rp-ext rp-ext_pocopico
+          # 容错
+          rm -f rp-ext_pocopico/asix/releases/ds3617xs_42218.json
+          rm -f rp-ext_pocopico/ax88179_178a/releases/ds3617xs_42218.json
+          rm -f rp-ext_pocopico/dm9601/releases/ds3617xs_42218.json
+          rm -f rp-ext_pocopico/nct6775/releases/dva3221_42218.json
+          rm -f rp-ext_pocopico/sfc/releases/ds918p_25556.json
+          rm -f rp-ext_pocopico/v9fs/releases/ds918p_42218.json
 
           sudo rm -rf rp-ext_wjz304
           git clone https://github.com/wjz304/rp-ext rp-ext_wjz304
+          # 容错
+          rm -f rp-ext_wjz304/asix/releases/ds3617xs_42218.json
+          rm -f rp-ext_wjz304/ax88179_178a/releases/ds3617xs_42218.json
+          rm -f rp-ext_wjz304/dm9601/releases/ds3617xs_42218.json
+          rm -f rp-ext_wjz304/nct6775/releases/dva3221_42218.json
+          rm -f rp-ext_wjz304/sfc/releases/ds918p_25556.json
+          rm -f rp-ext_wjz304/v9fs/releases/ds918p_42218.json
 
       - name: Get exts lsit
         uses: jannekem/run-python-script-action@v1.2
@@ -65,8 +77,11 @@ jobs:
 
             def pathstrsub(exp, reglist=[]):
                 ret = exp
-                for re in reglist:
-                    ret = ret.replace(re[0], re[1])
+                try:
+                    for re in reglist:
+                        ret = ret.replace(re[0], re[1])
+                except Exception as err:
+                    print(err)
                 return ret
 
             def getextslist(work = 'rp-ext', reglist=[]):
@@ -82,25 +97,28 @@ jobs:
                         if os.path.isdir(os.path.join(root, work, extdir)):
                             data_index = getjsonfile(os.path.join(root, work, extdir, jext))
                             if data_index != None:
-                                keys = data_index["releases"].keys()
-                                for key in keys:
-                                    suffix = ''
-                                    data_releases = getjsonfile(os.path.join(root, work, pathstrsub(data_index["releases"][key], reglist)))
-                                    if data_releases != None:
-                                        if "files" in data_releases:
-                                            for file in data_releases["files"]:
-                                                sha256_online = file["sha256"]
-                                                sha256_local = sha256sum(os.path.join(root, work, pathstrsub( file["url"], reglist)))
-                                                if sha256_online != sha256_local:
-                                                    suffix = '#'
-                                                    print('file: {} -- key: {} -- error: {} -- really: {}'.format(pathstrsub(data_index["releases"][key], reglist), pathstrsub(file["url"], reglist), sha256_online, sha256_local))
-                                    else:
-                                        suffix = '*'
-                                        print('file: {} -- may not exists'.format(pathstrsub(data_index["releases"][key], reglist)))
-                                    if key in exts.keys():
-                                        exts[key].append(extdir + suffix)
-                                    else:
-                                        exts[key] = [ extdir + suffix ]
+                                try:
+                                    keys = data_index["releases"].keys()
+                                    for key in keys:
+                                        suffix = ''
+                                        data_releases = getjsonfile(os.path.join(root, work, pathstrsub(data_index["releases"][key], reglist)))
+                                        if data_releases != None:
+                                            if "files" in data_releases:
+                                                for file in data_releases["files"]:
+                                                    sha256_online = file["sha256"]
+                                                    sha256_local = sha256sum(os.path.join(root, work, pathstrsub( file["url"], reglist)))
+                                                    if sha256_online != sha256_local:
+                                                        suffix = '#'
+                                                        print('file: {} -- key: {} -- error: {} -- really: {}'.format(pathstrsub(data_index["releases"][key], reglist), pathstrsub(file["url"], reglist), sha256_online, sha256_local))
+                                        else:
+                                            suffix = '*'
+                                            print('file: {} -- may not exists'.format(pathstrsub(data_index["releases"][key], reglist)))
+                                        if key in exts.keys():
+                                            exts[key][extdir + suffix] = data_index["info"]["description"]
+                                        else:
+                                            exts[key] = { extdir + suffix: data_index["info"]["description"]}
+                                except Exception as err:
+                                    print(err)
                 except Exception as err:
                     print(err)
                 return exts
@@ -122,6 +140,73 @@ jobs:
         run: |
           if [ -n "$(git status -s | grep exts.json)" ]; then
             git add exts.json
+            git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
+            git push -f
+          fi
+
+      - name: Checkout redpill-load s
+        run: |
+          sudo rm -rf redpill-load_pocopico_develop
+          git clone --branch develop https://github.com/pocopico/redpill-load.git redpill-load_pocopico_develop
+          # https://github.com/pocopico/rp-ext/blob/main/redpill/rpext-index.json 并不包含 DS3617xs/6.2.4-25556, 线上无法获取
+          rm -rf redpill-load_pocopico_develop/config/DS3617xs/6.2.4-25556
+
+          sudo rm -rf redpill-load_pocopico_jun
+          git clone --branch jun https://github.com/pocopico/redpill-load.git redpill-load_pocopico_jun
+          # https://github.com/pocopico/rp-ext/blob/main/redpill/rpext-index.json 并不包含 DS3617xs/6.2.4-25556, 线上无法获取
+          rm -rf redpill-load_pocopico_jun/config/DS3617xs/6.2.4-25556
+
+          sudo rm -rf redpill-load_jumkey_develop
+          git clone --branch develop https://github.com/jumkey/redpill-load.git redpill-load_jumkey_develop
+
+      - name: Get loads lsit
+        uses: jannekem/run-python-script-action@v1.2
+        with:
+          script: |
+            # -*- coding: utf-8 -*-
+            import os, json
+
+            root = '' # os.path.dirname(os.path.abspath(__file__))
+
+            def getloadlist(work = 'redpill-load'):
+                load = {}
+                try:
+                    platforms = os.listdir(os.path.join(root, work, 'config'))
+                    platforms.sort()
+                    print(platforms)
+                    for platform in platforms:
+                        if platform.startswith('.') or platform.startswith('_'):
+                            continue
+                        load[platform] = []
+                        if os.path.isdir(os.path.join(root, work, 'config', platform)):
+                            versions = os.listdir(os.path.join(root, work, 'config', platform))
+                            versions.sort()
+                            print(versions)
+                            for version in versions:
+                                if os.path.exists(os.path.join(root, work, 'config', platform, version, 'config.json')):
+                                    load[platform].append(version)
+                except Exception as err:
+                    print(err)
+                return load
+
+            if __name__ == '__main__':
+                loads = {}
+                print('################### pocopico develop ###################')
+                loads["pocopico_develop"] = getloadlist('redpill-load_pocopico_develop')
+                print('##################### pocopico jun #####################')
+                loads["pocopico_jun"] = getloadlist('redpill-load_pocopico_jun')
+                print('#################### jumkey develop ####################')
+                loads["jumkey_develop"] = getloadlist('redpill-load_jumkey_develop')
+                if len(loads) > 0:
+                    print('#######################  loads   #######################')
+                    print(json.dumps(loads, indent=4))
+                    with open(os.path.join(root, 'loads.json'), 'w', encoding='utf-8') as f:
+                        f.write(json.dumps(loads, indent=4))
+
+      - name: Check and Push
+        run: |
+          if [ -n "$(git status -s | grep loads.json)" ]; then
+            git add loads.json
             git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
             git push -f
           fi
