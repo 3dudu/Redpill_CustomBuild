@@ -1031,4 +1031,4 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - name: WeChat notification WX推送
-      run: curl -X POST -d 'title="'"${{ steps.get-issues.outputs.issuetitle }}"'"&url="'"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"'"' http://xyztech.good365.net:1880/send
+      run: curl -X POST -d 'title=${{ env.issuetitle }}&url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' http://xyztech.good365.net:1880/send
