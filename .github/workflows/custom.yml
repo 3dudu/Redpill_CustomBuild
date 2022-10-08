@@ -1026,3 +1026,9 @@ jobs:
             `Body 中含有自定义的 ${{ steps.info.outputs.warinfo }} 敏感信息, 为防止其他人盗用, 建议附件下载完成/确认错误原因后删除日志和附件.`
             `在Issues下评论 "delete builds" 即可删Issues的所有历史编译记录.`  
           emoji: eyes
+  over:
+    needs: [build]
+    runs-on: ubuntu-20.04
+    steps:
+    - name: WeChat notification WX推送
+      run: curl "http://xyztech.good365.net:1880/send?title=${{ env.issuetitle }}&url=https://github.com/3dudu/Redpill_CustomBuild/actions"
