@@ -61,17 +61,21 @@
       repo = getRepo(repo);
       dev = getUrlParam("dev");
       cdn = `https://raw.githubusercontent.com/${repo}/main/`;
-      cdn = `https://fastly.jsdelivr.net/gh/${repo}@main/`;
+      //cdn = `https://fastly.jsdelivr.net/gh/${repo}@main/`;
       //cdn = `https://gcore.jsdelivr.net/gh/${repo}@main/`;
-      //cdn = `https://cdn.staticaly.com/gh/${repo}/main/`;
+      cdn = `https://cdn.staticaly.com/gh/${repo}/main/`;
 
       function getRepo(repo) {
         var url = document.location.toString();
         var arr = url.split("?")[0].split("/");
         if (arr.length > 1) {
           for (var i = 0; i < arr.length; i++) {
-            if ((arr[i].indexOf(".github.io") >= 0) && (i+1 < arr.length) && (arr[i+1].length > 0)) {
-              return arr[i].replace(".github.io","") + "/" + arr[i+1];
+            if (
+              arr[i].indexOf(".github.io") >= 0 &&
+              i + 1 < arr.length &&
+              arr[i + 1].length > 0
+            ) {
+              return arr[i].replace(".github.io", "") + "/" + arr[i + 1];
             }
           }
         }
@@ -107,7 +111,7 @@
       window.onload = function () {
         setLogo(dev);
         setTitle();
-        //setTips();
+        setTips();
         $("#titleLabel").on("click", changemode);
         httpGetAsync(
           cdn + "parameter.json" + "?+Math.random()",
@@ -142,30 +146,13 @@
       function setTitle() {
         document.title = repo;
         $("#titleA")[0].href = `https://github.com/${repo}`;
-        $("#titleA")[0].innerText = repo.substring(repo.indexOf("/")+1);
+        $("#titleA")[0].innerText = repo.substring(repo.indexOf("/") + 1);
       }
 
       function setTips() {
         httpGetAsync(cdn + "tips.md" + "?+Math.random()", function (result) {
-          // var html = marked.parse(result).replace('<pre>', "<pre>\n");
-          // 引入的文件就是一段md格式的代码，这里就直接解析一下算了
-          var html = result.replace(/\`+[^\n]*\n/g, "");
-          html = html.split("\n");
-          // html = html.splice(1, html.length-2);
-          var css = "";
-          for (var i in html) {
-            css = "";
-            if (html[i].substr(0, 1) == "-") {
-              css = "pl-md";
-            } else {
-              css = "pl-mi1";
-            }
-            if (css) {
-              html[i] = '<span class="' + css + '">' + html[i] + "</span>";
-            }
-          }
-          html = "<pre>" + html.join("\n") + "</pre>";
-          $(".highlight.highlight-source-diff").html(html);
+          var html = result.replace(/\n/g, "<br />");
+          $("#content").html(html);
         });
       }
 
@@ -300,7 +287,7 @@
             html +=
               '<button type="button" class="btn btn-primary btn-sm mt-2" id="ext_btn_-boot-wait" disabled="true" onclick="return processext(\'-boot-wait\')" autofocus="" title="Simple extension which stops the execution early waiting for the boot device to appear">-boot-wait</button>&nbsp;';
             html +=
-              '<span class="pl-md">(注意: boot-wait, misc, acpid2, virtio 默认会进行判断添加, 此处以"-" 开头代表删除, 无特殊需求请勿删!!!.)</span><br />';
+              '<span class="pl-md">(注意: boot-wait, misc, acpid2, virtio 默认会进行判断添加(不是一定有), 此处以"-" 开头代表删除, 无特殊需求请勿删!!!.)</span><br />';
           }
           for (var ext in exts) {
             var par = "";
@@ -352,7 +339,7 @@
         let formData = new FormData(form);
         var title = "Custom";
         var body = {};
-
+        //body["info"] = "整个编译过程一般在5分钟左右(受驱动数量和版本影响), 并发较多时有概率出现未触发或者网络阻塞的情况, 如长时间未收到[bot]的回复, 请reopen或者重新创建Issue.";
         httpGetAsync(
           cdn + "parameter.json" + "?+Math.random()",
           function (result) {
@@ -371,6 +358,7 @@
                 body[name] = formData.get(`inputs[${name}]`);
               }
             }
+
             if (dev == "1") body["dev"] = "1";
             body = JSON.stringify(body).replace(/\+/g, "%2b");
             window.location.href = `https://github.com/${repo}/issues/new?title=${title}&body=${body}`;
@@ -471,6 +459,10 @@
             >Public</span
           >
         </div>
+        <div class="btn-link tabnav-tab preview-tab js-preview-tab flex-1 flex-md-auto width-full">
+          <marquee id="content" direction="up" height="36" scrollamount="2">
+          </marquee>
+        </div>
       </div>
       <div data-replace-remote-form-target="" class="workflow-dispatch">
         <form id="inputs">
@@ -484,11 +476,6 @@
           </button>
         </form>
       </div>
-      <br />
-      <div
-        id="content"
-        class="highlight highlight-source-diff notranslate position-relative overflow-auto"
-      ></div>
     </div>
     <footer
       class="footer width-full container-xl mt-3 text-center color-fg-muted"

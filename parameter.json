@@ -43,7 +43,7 @@
     },
     "config": {
         "name": "config",
-        "description": "如不了解请保持默认, 设置默认 user_config.json, 默认: 无",
+        "description": "如不了解请保持默认, 设置 user_config.json 的 base 参数, 默认: 无",
         "detailedinfo": "config会被优先读取, 因此以下参数会覆盖config的内容. 仅建议在以下配置项无法满足需求时使用.",
         "required": false,
         "default": "",
@@ -156,7 +156,7 @@
     "dtb": {
         "name": "dtb",
         "description": "请输入 dtb 文件的下载链接, 仅 DS920+, DS1621+, DS2422+, DVA1622 需要填写, 其他型号请勿填写. ",
-        "detailedinfo": "需要自行制作dts/dtb 文件, 制作方法参考主页说明.\n支持的文件类型: .dts,.dtb,.tar.gz,.zip",
+        "detailedinfo": "需要自行制作dts/dtb 文件, 制作方法参考主页说明.\n支持的文件类型: .dts,.dtb,.tar.gz,.zip\n四盘位以下可尝试不填写, 将自动编译.",
         "required": false,
         "default": "",
         "type": "string"
