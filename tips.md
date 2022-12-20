@@ -1,5 +1,21 @@
 ```diff 
 + 注意事项:
+- pocopico_develop&pocopico_jun 现在全型号编不过, 且该错误在下游无法容错, 我已经PR了, 非要用pocopico暂时可通过dev模式编译 !!!
+- pocopico_develop&pocopico_jun 现在全型号编不过, 且该错误在下游无法容错, 我已经PR了, 非要用pocopico暂时可通过dev模式编译 !!!
+- pocopico_develop&pocopico_jun 现在全型号编不过, 且该错误在下游无法容错, 我已经PR了, 非要用pocopico暂时可通过dev模式编译 !!!
+- pocopico_develop&pocopico_jun 现在全型号编不过, 且该错误在下游无法容错, 我已经PR了, 非要用pocopico暂时可通过dev模式编译 !!!
+- pocopico_develop&pocopico_jun 现在全型号编不过, 且该错误在下游无法容错, 我已经PR了, 非要用pocopico暂时可通过dev模式编译 !!!
+- pocopico_develop&pocopico_jun 现在全型号编不过, 且该错误在下游无法容错, 我已经PR了, 非要用pocopico暂时可通过dev模式编译 !!!
+- pocopico_develop&pocopico_jun 现在全型号编不过, 且该错误在下游无法容错, 我已经PR了, 非要用pocopico暂时可通过dev模式编译 !!!
+- pocopico_develop&pocopico_jun 现在全型号编不过, 且该错误在下游无法容错, 我已经PR了, 非要用pocopico暂时可通过dev模式编译 !!!
+- pocopico_develop&pocopico_jun 现在全型号编不过, 且该错误在下游无法容错, 我已经PR了, 非要用pocopico暂时可通过dev模式编译 !!!
+- pocopico_develop&pocopico_jun 现在全型号编不过, 且该错误在下游无法容错, 我已经PR了, 非要用pocopico暂时可通过dev模式编译 !!!
+- pocopico_develop&pocopico_jun 现在全型号编不过, 且该错误在下游无法容错, 我已经PR了, 非要用pocopico暂时可通过dev模式编译 !!!
+- pocopico_develop&pocopico_jun 现在全型号编不过, 且该错误在下游无法容错, 我已经PR了, 非要用pocopico暂时可通过dev模式编译 !!!
+- pocopico_develop&pocopico_jun 现在全型号编不过, 且该错误在下游无法容错, 我已经PR了, 非要用pocopico暂时可通过dev模式编译 !!!
+-
+- 现在型号和版本号均为根据基础库自动拉取.
+- jun编译尽量选择jumkey的库, 新型号可选择PeterSuh-Q3库.
 - dtb 没有制作就不要写, 不要再只填个 .zip, 或者复制示例的地址了. 四盘位以下可尝试不填写, 将自动编译, 更多信息参考 Issues页的置顶Issue.
 - DS3615xs/DS3617xs 或者 6.2.4 现有驱动全选会编不过, 空间不足.
 - 整个编译过程一般在5分钟左右(受驱动数量和版本影响), 并发较多时有概率出现未触发或者网络阻塞的情况, 如长时间未收到[bot]的回复, 请reopen或者重新创建Issue.

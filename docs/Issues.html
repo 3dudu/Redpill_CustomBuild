@@ -65,8 +65,9 @@
       repo = getRepo(repo);
       dev = getUrlParam("dev");
       cdn = `https://raw.githubusercontent.com/${repo}/main/`;
+      cdn = `https://ghproxy.com/https://raw.githubusercontent.com/${repo}/main/`;
       //cdn = `https://fastly.jsdelivr.net/gh/${repo}@main/`;
-      cdn = `https://gcore.jsdelivr.net/gh/${repo}@main/`;
+      //cdn = `https://gcore.jsdelivr.net/gh/${repo}@main/`;
       //cdn = `https://cdn.statically.io/gh/${repo}/main/`;
       //cdn = `https://cdn.staticaly.com/gh/${repo}/main/`;
 
@@ -114,6 +115,8 @@
       }
 
       window.onload = function () {
+        confirm("pocopico_develop&pocopico_jun 现在全型号编不过, 且该错误在下游无法容错, 我已经PR了, 急需 pocopico 暂时可通过dev模式编译 !!!");
+
         setLogo(dev);
         setTitle();
         setTips();
@@ -507,7 +510,7 @@
         <form id="inputs">
           <button
             type="button"
-            class="btn btn-primary btn-sm mt-2"
+            class="btn State--merged"
             onclick="return createIssues()"
             autofocus=""
           >
